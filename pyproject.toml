@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voice-island"
+version = "0.1.0"
+description = "Linux desktop dictation with a compact animated recording indicator"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "a. p."}]
+dependencies = ["numpy>=1.21", "requests>=2.28"]
+
+[project.optional-dependencies]
+keyboard = ["evdev>=1.6"]
+
+[project.scripts]
+voice-island = "voice_island.app:main"
+
+[tool.setuptools.packages.find]
+include = ["voice_island*"]
