@@ -41,7 +41,8 @@ under `XDG_CONFIG_HOME`. It refuses to overwrite an existing file.
 | `source` | PulseAudio/PipeWire source name; empty selects the current default |
 | `theme` | `matrix`, `fire`, `electric`, `plasma`, `ice` |
 | `style` | `solid`, `blocks`, `bounce`, `dots` |
-| `output` | `type` or `clipboard` |
+| `output` | `paste` (default), `type` or `clipboard` |
+| `paste_shortcut` | Default `ctrl+v`; use `ctrl+shift+v` for a terminal |
 | `max_seconds` | Recording limit, 1–600 seconds; default 120 |
 | `top_offset` | Overlay position below the primary monitor's top edge |
 | `meter_floor_db` | Display sensitivity; this is a visual indicator, not a calibrated meter |
@@ -83,6 +84,12 @@ permissions, grab the keyboard, or log keystrokes. Desktop-managed shortcuts
 are recommended for ordinary installations.
 
 ## Output and focus
+
+The default output copies the transcript to the clipboard and sends the
+configured paste shortcut, avoiding Unicode key-mapping races. This replaces
+the current clipboard contents. For a terminal, configure `ctrl+shift+v`.
+Legacy `type` mode simulates individual keys and can be unreliable for
+characters absent from the X11 keyboard map; prefer paste for multilingual text.
 
 Dictation remembers the focused X11 window when recording starts. If that
 window changes, the result is copied to the clipboard for manual insertion.

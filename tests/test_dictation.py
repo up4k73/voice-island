@@ -88,12 +88,29 @@ class TranscriptionTests(unittest.TestCase):
 
 
 class OutputTests(unittest.TestCase):
+    def test_unicode_paste_sets_clipboard_before_sending_shortcut(self):
+        order=[]
+        run=Mock(return_value=Mock(stdout="123"))
+        process=Mock(returncode=0)
+        def popen(command,**kwargs):
+            order.append(command)
+            return process
+        output=TextOutput(lambda text:order.append(text),run,popen)
+        self.assertEqual(output.deliver("Привет", "123"),"Text inserted")
+        self.assertEqual(order,["Привет ",["xdotool","key","--clearmodifiers","ctrl+v"]])
+
+    def test_clipboard_failure_never_sends_paste(self):
+        popen=Mock()
+        output=TextOutput(Mock(side_effect=RuntimeError("Unavailable")),Mock(return_value=Mock(stdout="123")),popen)
+        self.assertEqual(output.deliver("hello", "123"),"Clipboard unavailable")
+        popen.assert_not_called()
+
     def test_text_goes_via_stdin_and_only_to_unchanged_focus(self):
         run = Mock(return_value=Mock(stdout="123\n"))
         process=Mock(returncode=0)
         popen=Mock(return_value=process)
         output = TextOutput(Mock(), run, popen)
-        self.assertEqual(output.deliver("text $() ; literal", "123"), "Text inserted")
+        self.assertEqual(output.deliver("text $() ; literal", "123", "type"), "Text inserted")
         self.assertEqual(popen.call_args.args[0][-2:], ["--file","-"])
         self.assertEqual(process.communicate.call_args.kwargs["input"], "text $() ; literal ")
         self.assertNotIn("text $() ; literal", popen.call_args.args[0])
@@ -105,7 +122,7 @@ class OutputTests(unittest.TestCase):
         process.poll.return_value=None
         output=TextOutput(copy,run,Mock(return_value=process))
         process.communicate.side_effect=lambda **kwargs: output.cancel()
-        self.assertEqual(output.deliver("cancel this", "123"),"Cancelled")
+        self.assertEqual(output.deliver("cancel this", "123", "type"),"Cancelled")
         process.terminate.assert_called_once()
         copy.assert_not_called()
 
@@ -148,7 +165,7 @@ class ControllerTests(unittest.TestCase):
         recognize.assert_called_once()
         self.assertEqual(controller.state,"processing")
         jobs.pop(0)()
-        self.assertEqual(output.deliver.call_args.args,("hello","123","type"))
+        self.assertEqual(output.deliver.call_args.args,("hello","123","paste"))
         self.assertFalse(output.deliver.call_args.kwargs['is_cancelled']())
         self.assertEqual(controller.state,"idle")
 

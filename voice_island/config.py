@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass
 import json
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -14,7 +15,8 @@ class Config:
     source: str = ""
     theme: str = "electric"
     style: str = "solid"
-    output: str = "type"
+    output: str = "paste"
+    paste_shortcut: str = "ctrl+v"
     max_seconds: int = 120
     top_offset: int = 8
     meter_floor_db: float = -60.0
@@ -28,8 +30,10 @@ class Config:
             raise ValueError("Unknown theme")
         if self.style not in {"solid", "blocks", "bounce", "dots"}:
             raise ValueError("Unknown bar style")
-        if self.output not in {"type", "clipboard"}:
-            raise ValueError("Output must be type or clipboard")
+        if self.output not in {"paste", "type", "clipboard"}:
+            raise ValueError("Output must be paste, type or clipboard")
+        if not isinstance(self.paste_shortcut,str) or not re.fullmatch(r"(?:[A-Za-z][A-Za-z0-9_]*\+)*[A-Za-z][A-Za-z0-9_]*",self.paste_shortcut):
+            raise ValueError("Invalid paste shortcut")
         if not isinstance(self.max_seconds, int) or not 1 <= self.max_seconds <= 600:
             raise ValueError("max_seconds must be between 1 and 600")
         if not isinstance(self.top_offset, int) or not 0 <= self.top_offset <= 500:

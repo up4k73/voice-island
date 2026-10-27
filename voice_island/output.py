@@ -25,7 +25,14 @@ class TextOutput:
             if self.process is not None and self.process.poll() is None:
                 self.process.terminate()
 
-    def deliver(self, text, initial_focus, mode="type", is_cancelled=lambda: False):
+    def copy_status(self, text, message):
+        try:
+            self.copy_text(text)
+            return message
+        except Exception:
+            return "Clipboard unavailable"
+
+    def deliver(self, text, initial_focus, mode="paste", is_cancelled=lambda: False, paste_shortcut="ctrl+v"):
         with self.lock:
             self.cancel_requested = False
         def aborted():
@@ -33,21 +40,28 @@ class TextOutput:
         if aborted():
             return "Cancelled"
         if mode == "clipboard":
-            self.copy_text(text)
-            return "Copied to clipboard"
+            return self.copy_status(text,"Copied to clipboard")
         if initial_focus is None or self.focus() != initial_focus:
-            self.copy_text(text)
-            return "Focus changed — copied"
+            return self.copy_status(text,"Focus changed — copied")
         process = None
         try:
-            process = self.popen(["xdotool", "type", "--clearmodifiers", "--delay", "12", "--file", "-"],
+            if mode == "paste":
+                if self.copy_status(text + " ","ready") != "ready":return "Clipboard unavailable"
+                if aborted():return "Cancelled"
+                if self.focus() != initial_focus:return "Focus changed — copied"
+                command=["xdotool","key","--clearmodifiers",paste_shortcut]
+                payload=""
+            else:
+                command=["xdotool", "type", "--clearmodifiers", "--delay", "12", "--file", "-"]
+                payload=text + " "
+            process = self.popen(command,
                 stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 text=True, encoding="utf-8")
             with self.lock:
                 self.process = process
             if aborted():
                 process.terminate()
-            process.communicate(input="" if aborted() else text + " ", timeout=max(30, min(180, len(text) * 0.024 + 5)))
+            process.communicate(input="" if aborted() else payload, timeout=max(30, min(180, len(text) * 0.024 + 5)))
             if aborted():
                 return "Cancelled"
             if process.returncode:
@@ -58,8 +72,7 @@ class TextOutput:
                 process.wait(timeout=2)
             if aborted():
                 return "Cancelled"
-            self.copy_text(text)
-            return "Typing failed — copied"
+            return self.copy_status(text,"Insertion failed — copied")
         finally:
             with self.lock:
                 if self.process is process:

@@ -19,7 +19,7 @@ The small overlay shows recording, processing and result states, then hides.
 - Global shortcuts through your desktop's shortcut settings.
 - Optional direct keyboard-device binding.
 - Configurable HTTP speech backend; no built-in cloud account or hidden fallback.
-- Text insertion or clipboard output. If window focus changes during recognition,
+- Unicode-safe clipboard paste or manual clipboard output. If window focus changes during recognition,
   the result is copied instead of being typed into a different window.
 - Cancellation and a configurable recording-length limit.
 
@@ -85,6 +85,10 @@ boundary between current behavior and planned work.
 Audio is held in memory and sent only to the endpoint you configure. The client
 does not save recordings or log recognized text. Your speech service and your
 desktop clipboard manager have their own data-handling behavior.
+
+Default insertion updates the clipboard and sends Ctrl+V. For a terminal, set
+the paste shortcut to Ctrl+Shift+V. A legacy simulated-typing mode is also
+available, but character support depends on the keyboard map.
 
 Tests cover audio encoding, HTTP failures, cancellation, focus changes and local
 shortcut commands. An isolated GUI check exercises synthetic PCM → WAV upload →

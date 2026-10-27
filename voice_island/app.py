@@ -19,7 +19,7 @@ def parser():
     for action in ("toggle", "cancel", "quit", "preview", "init-config"):
         actions.add_argument("--" + action, action="store_true")
     result.add_argument("--config", type=Path, help="Configuration JSON path")
-    for name in ("url", "long-url", "language", "source", "theme", "style", "output"):
+    for name in ("url", "long-url", "language", "source", "theme", "style", "output", "paste-shortcut"):
         result.add_argument("--" + name)
     result.add_argument("--max-seconds", type=int)
     result.add_argument("--top-offset", type=int)
@@ -52,7 +52,7 @@ def main(argv=None):
     if not args.preview and os.environ.get("XDG_SESSION_TYPE") == "wayland":
         print("This release supports X11 sessions. Native Wayland input is not implemented.", file=sys.stderr)
         return 1
-    names = ("url", "long_url", "language", "source", "theme", "style", "output", "max_seconds", "top_offset")
+    names = ("url", "long_url", "language", "source", "theme", "style", "output", "paste_shortcut", "max_seconds", "top_offset")
     try:
         config = load(args.config, {name: getattr(args, name) for name in names})
     except (ValueError, TypeError, OSError) as error:
@@ -106,7 +106,14 @@ def main(argv=None):
         Gtk.main()
         return 0
 
-    controller = Controller(config, view, TextOutput(lambda text: dispatch(copy_text, text)), dispatch)
+    def copy_ready(text):
+        ready=threading.Event()
+        def update():
+            copy_text(text)
+            ready.set()
+        dispatch(update)
+        if not ready.wait(3):raise RuntimeError("Clipboard unavailable")
+    controller = Controller(config, view, TextOutput(copy_ready), dispatch)
     def handle(action):
         if action == "toggle":
             controller.toggle()

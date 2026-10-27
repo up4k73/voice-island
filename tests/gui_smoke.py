@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("GdkX11", "3.0")
-from gi.repository import Gtk, GLib, GdkX11
+from gi.repository import Gtk, GLib, GdkX11, Gdk
 import cairo
 
 from voice_island.audio import Capture
@@ -70,7 +70,17 @@ def fixture_popen(command, **kwargs):
     assert '--format=s16le' in command and '--channels=1' in command
     return subprocess.Popen([sys.executable,'-c',emitter],**kwargs)
 
-controller = Controller(config,view,TextOutput(copied.append),dispatch,
+def copy_ready(value):
+    ready=threading.Event()
+    def update():
+        copied.append(value)
+        clipboard=Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        clipboard.set_text(value,-1)
+        ready.set()
+    dispatch(update)
+    if not ready.wait(3):raise RuntimeError('Clipboard unavailable')
+
+controller = Controller(config,view,TextOutput(copy_ready),dispatch,
     capture_factory=lambda *args: Capture(*args,popen=fixture_popen))
 
 def export(name):
@@ -97,7 +107,7 @@ def check_result():
     actual=editor_text()
     if actual==expected+' ':
         assert received == [{'path':'/transcribe','wav':True,'multipart':True}]
-        assert not copied
+        assert copied == [expected+' ']
         result.update(typing_matches=True,request_count=len(received),focus_preserved=True)
         export('complete')
         Gtk.main_quit()

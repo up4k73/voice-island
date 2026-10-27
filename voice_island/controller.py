@@ -97,7 +97,8 @@ class Controller:
                 if generation != self.generation or self.closed:
                     return
                 message = self.output.deliver(text, focus, self.config.output,
-                    is_cancelled=lambda: generation != self.generation or self.closed)
+                    is_cancelled=lambda: generation != self.generation or self.closed,
+                    paste_shortcut=self.config.paste_shortcut)
                 self.dispatch(self._delivered, generation, message)
             self.submit(deliver)
 
